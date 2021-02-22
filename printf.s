@@ -17,7 +17,7 @@ dash:		.asciz "-"
 # ***************************************************************************************
 main:
 	movq	$-12493, %rcx		# Fourth argument: 'neg'
-	movq	$5, %rdx		# Third argument: 'grade'
+	movq	$52345235, %rdx		# Third argument: 'grade'
 	movq	$piet, %rsi		# Second argument: 'piet'
 	movq	$teststr, %rdi		# First argument: the format str
 	call	my_printf
@@ -140,27 +140,26 @@ print_num_loop:
 
 	jmp	print_num_loop		# Jump to start of loop		
 
-print_stack:
-	# Print remainder of division
+print_stack:	
+	# If rsp is 128, we hit our previously set breakpoint (the end is reached)
+	cmpq	$128, (%rsp)		# Compare value at rsp to 128
+	je	print_num_end		# Go to print_num_end
+	
+	# Else, print current digit
 	movq	$1, %rax		# Which syscall: sys_write 
 	movq	$1, %rdx		# Third argument: length (1 char = 1 byte)	
-	movq	%rsp, %rsi		# Second argument: current digit's ASCII value
+	movq	%rsp, %rsi		# Second argument: address of current digit on stack
 	movq	$1, %rdi		# First argument: where to write: STDOUT (1)	
 	syscall
 	
-	addq	$8, %rsp		# Move to next digit
+	addq	$8, %rsp		# Move to next digit on the stack
 
-	# If rsp is 128, we hit our previously set breakpoint (the end is reached)
-	cmpq	$128, (%rsp)		# Compare value at rsp to 128
-	je	print_num_end		# Go to unsigned_int_end
-	
-	# Else
 	jmp	print_stack		# Go to beginning of loop
 	
 print_num_end:
-	movq	%rbp, %rsp
+	addq	$8, %rsp		# Clean last variable (128) off stack
 	popq	%rbp			# Restore base pointer
-	ret
+	ret				# Return from subroutine
 
 # ***************************************************************************************
 # * Subroutine: print_string								*
