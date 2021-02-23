@@ -22,8 +22,9 @@ main:
 	movq	$teststr, %rdi		# First argument: the format str
 	call	my_printf
 end:
-	movq	$0, %rdi		# Load exit code
-	call	exit			# Call exit
+	movq	$60, %rax		# sys_exit
+	movq	$0, %rdx		# Load exit code
+	syscall
 
 # ***************************************************************************************
 # * Subroutine: my_printf								*
