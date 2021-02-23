@@ -10,8 +10,6 @@ DIFFS:		.skip 4096		# Reserve 4096 bytes for the 2nd file's diffs
 
 .text
 # Initialize null-terminated strings
-teststr:	.asciz "My name is %s. I think I'll get a %u for my exam. What does %r do? And %%? Btw here's negative numbers: %d\n"
-newline:	.asciz "\n"
 invalidfile:	.asciz "Error reading file '%s'\n"
 invalidargc:	.asciz "Invalid amount of argumnets\n"
 filemode:	.asciz "r"
@@ -52,7 +50,7 @@ main:
 	cmpq	$0, %rax		# Compare file pointer to 0
 	je	file_error		# If equal, go to file_error
 	
-	movq	%rax, %r13		# Move 'fp2' to r13
+	movq	%rax, %r13		# Move 'fp2' to r13	
 
 main_loop:
 	while_empty:
@@ -69,10 +67,9 @@ main_loop:
 		movq	$BUFF1, %rdi		# First argument: char buffer
 		call	strlen	
 		
-		cmpq	$0, %rax		# Compare len(BUFF1) to 0
+		cmpq	$1, %rax		# Compare len(BUFF1) to 1 (meaning empty line)
 		je	while_empty		# If equal, jump to top of loop
 
-	
 	while_empty2:
 		# Read a single line from file 2
 		movq	$0, %rax		# Clear rax
@@ -87,11 +84,12 @@ main_loop:
 		movq	$BUFF2, %rdi		# First argument: char buffer
 		call	strlen
 
-		cmpq	$0, %rax		# Compare len(BUFF1) to 0
+		cmpq	$1, %rax		# Compare len(BUFF1) to 1 (meaning empty line)
 		je	while_empty2		# If equal, jump to top of loop
 	
 	jmp	read_results
-
+	
+# Decide on what to do based on 'result1' and 'result2'
 read_results:	
 	cmpq	$0, %r14		# Compare 'result1' to NULL
 	je	file1_null		# If equal, go to file1_null
@@ -103,7 +101,7 @@ read_results:
 	movq	$0, %rax		# Clear rax
 	movq	$BUFF1, %rsi		# Second argument: char buffer 1
 	movq	$BUFF2, %rdi		# First argument: char buffer 2
-	call	strcmp
+	call	strcasecmp		# Call strcasecmp (which ignores casing)
 
 	cmpq	$0, %rax
 	jne	difference		# If not equal (strings are different)
