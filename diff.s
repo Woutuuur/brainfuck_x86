@@ -52,43 +52,67 @@ main:
 	
 	movq	%rax, %r13		# Move 'fp2' to r13	
 
-main_loop:
+
+main_loop:	
+	# Read a single line from file 1
+	movq	$0, %rax		# Clear rax
+	movq	%r12, %rdx		# Third argument: File pointer
+	movq	$127, %rsi		# Second argument: Max amount of bits to read
+	movq	$BUFF1, %rdi		# First argument: buffer to write to 
+	call 	fgets	
+	movq	%rax, %r14		# Move 'result1' to r14		
+	
+	# Read a single line from file 2
+	movq	$0, %rax		# Clear rax
+	movq	%r13, %rdx		# Third argument: File pointer
+	movq	$127, %rsi		# Second argument: Max amount of bits to read
+	movq	$BUFF2, %rdi		# First argument: buffer to write to 
+	call 	fgets
+	movq	%rax, %r15		# Move 'result2' to r15
+
 	while_empty:
-		# Read a single line from file 1
-		movq	$0, %rax		# Clear rax
-		movq	%r12, %rdx		# Third argument: File pointer
-		movq	$127, %rsi		# Second argument: Max amount of bits to read
-		movq	$BUFF1, %rdi		# First argument: buffer to write to 
-		call 	fgets
-		
-		movq	%rax, %r14		# Move 'result1' to r14
+		cmpq	$0, %r14		# Compare 'result1' to NULL
+		je	while_empty2		# If equal, go to next while
 	
 		movq	$0, %rax		# Clear rax
 		movq	$BUFF1, %rdi		# First argument: char buffer
 		call	strlen	
 		
-		cmpq	$1, %rax		# Compare len(BUFF1) to 1 (meaning empty line)
-		je	while_empty		# If equal, jump to top of loop
+		cmpq	$1, %rax		# Compare len(BUFF1) to 1 (meaning line only contains '\n')
+		jne	while_empty2		# If not equal, jump to next while
 
+		# Else, load next line and repeat
+		# Read the next line from file 1
+		movq	$0, %rax		# Clear rax
+		movq	%r12, %rdx		# Third argument: File pointer
+		movq	$127, %rsi		# Second argument: Max amount of bits to read
+		movq	$BUFF1, %rdi		# First argument: buffer to write to 
+		call 	fgets		
+		movq	%rax, %r14		# Move 'result1' to r14		
+	
+		jmp	while_empty
+	
 	while_empty2:
+		cmpq	$0, %r15		# Compare 'result2' to NULL
+		je	read_results		# If equal, go directly to read_results
+		
+		movq	$0, %rax		# Clear rax
+		movq	$BUFF2, %rdi		# First argument: char buffer
+		call	strlen
+
+		cmpq	$1, %rax		# Compare len(BUFF1) to 1 (meaning line only contains '\n')
+		jne	read_results		# If not equal, jump to read_results
+	
 		# Read a single line from file 2
 		movq	$0, %rax		# Clear rax
 		movq	%r13, %rdx		# Third argument: File pointer
 		movq	$127, %rsi		# Second argument: Max amount of bits to read
 		movq	$BUFF2, %rdi		# First argument: buffer to write to 
 		call 	fgets
-
 		movq	%rax, %r15		# Move 'result2' to r15
+		
+		jmp	while_empty2
 
-		movq	$0, %rax		# Clear rax
-		movq	$BUFF2, %rdi		# First argument: char buffer
-		call	strlen
-
-		cmpq	$1, %rax		# Compare len(BUFF1) to 1 (meaning empty line)
-		je	while_empty2		# If equal, jump to top of loop
-	
-	jmp	read_results
-	
 # Decide on what to do based on 'result1' and 'result2'
 read_results:	
 	cmpq	$0, %r14		# Compare 'result1' to NULL
