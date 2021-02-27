@@ -3,8 +3,10 @@
 # * Description: Interpreter for the brainfuck language					*
 # ***************************************************************************************
 .bss
-FILEBUFF: 	.skip 163840
-MEMORY:		.skip 30000
+FILEBUFF: 	.skip 64000	
+JUMPTABLE:	.skip 128000
+MEMORY:		.skip 8192
+PRINTBUFF: 	.skip 256
 
 .text
 # Initialize a null-terminated strings
@@ -28,7 +30,6 @@ main:
 
 read_file:
 	# Open the file
-	movq	$0, %rax
 	movq	$filemode, %rsi		# Second argument: filemode
 	movq	%r14, %rdi		# First argument: filename
 	call	fopen
@@ -40,21 +41,18 @@ read_file:
 	movq	%rax, %r12		# Move the file pointer 'fp' to r12
 
 	# Move the file pointer to the end of the file
-	movq	$0, %rax
 	movq	$2, %rdx		# Third argument: position to go to (2 = SEEK_END)
 	movq	$0, %rsi		# Second argument: offset
 	movq	%r12, %rdi		# First argument: file pointer
 	call	fseek
 
 	# Get current position in file
-	movq	$0, %rax
 	movq	%r12, %rdi		# First argument: file pointer
 	call	ftell
 
 	pushq	%rax			# Push 'filelength' to stack
 
 	# Move file pointer back to the beginning of the file
-	movq	$0, %rax
 	movq	$0, %rdx		# Third argument: position to go to (0 = SEEK_SET)
 	movq	$0, %rsi		# Second argument: offset
 	movq	%r12, %rdi		# First argument: file pointer
@@ -63,14 +61,12 @@ read_file:
 	popq	%r13			# Pop 'filelength' to r13
 
 	# Read from file into MEMORY
-	movq	$0, %rax
 	movq	%r12, %rcx		# Fourth argument: file pointer
 	movq	%r13, %rdx		# Third argument: amount of reads
 	movq	$1, %rsi		# Second argument: bytes per read
 	movq	$FILEBUFF, %rdi		# First argument: memory to write to
 	call	fread
 
-	movq	$0, %rax
 	movq	%r12, %rdi		# First argument: file pointer
 	call	fclose			# Close the file
 
@@ -83,35 +79,35 @@ brainfuck:
 	push	%rbp
 	movq	%rsp, %rbp
 
-	movq	$FILEBUFF, %r12		# Current source string address to r12
+	movq	$0, %r12
 	movq 	$MEMORY, %r13		# Current memory address to r13
 
 brainfuck_loop:
-	cmpb	$'>', (%r12)
+	cmpb	$'>', FILEBUFF(%r12)
 	je	inc_pointer
 
-	cmpb	$'<', (%r12)
+	cmpb	$'<', FILEBUFF(%r12)
 	je	dec_pointer
 
-	cmpb	$'+', (%r12)
+	cmpb	$'+', FILEBUFF(%r12)
 	je	inc_val
 
-	cmpb	$'-', (%r12)
+	cmpb	$'-',  FILEBUFF(%r12)
 	je	dec_val
 
-	cmpb	$'.', (%r12)
+	cmpb	$'.',  FILEBUFF(%r12)
 	je	print_val
 
-	cmpb	$',', (%r12)
+	cmpb	$',',  FILEBUFF(%r12)
 	je	input_char
 
-	cmpb	$'[', (%r12)
+	cmpb	$'[',  FILEBUFF(%r12)
 	je	open_bracket
 
-	cmpb	$']', (%r12)
+	cmpb	$']',  FILEBUFF(%r12)
 	je	closing_bracket
 
-	cmpb	$0, (%r12)
+	cmpb	$0, FILEBUFF(%r12)
 	je	brainfuck_end
 
 brainfuck_loop_end:
@@ -119,11 +115,11 @@ brainfuck_loop_end:
 	jmp	brainfuck_loop
 
 inc_pointer:
-	incq	%r13
+	inc	%r13
 	jmp	brainfuck_loop_end
 
 dec_pointer:
-	decq 	%r13
+	dec 	%r13
 	jmp	brainfuck_loop_end
 
 inc_val:
@@ -136,7 +132,7 @@ dec_val:
 
 print_val:
 	movq	$0, %rax
-	mov	(%r13), %rdi
+	movq	(%r13), %rdi
 	call	putchar
 	
 	jmp	brainfuck_loop_end
@@ -144,7 +140,7 @@ print_val:
 input_char:
 	movq	$0, %rax
 	call	getchar
-	mov	%rax, (%r13)
+	movq	%rax, (%r13)
 	
 	jmp	brainfuck_loop_end
 
@@ -152,51 +148,58 @@ open_bracket:
 	cmpb	$0, (%r13)
 	je	find_closing_bracket
 
+	pushq	%r12
+
 	jmp	brainfuck_loop_end
 
 find_closing_bracket:
+	movq	%r12, %r15
+	movq	$0, %rdx
+	cmpw 	$0, JUMPTABLE(%rdx, %r15, 2)
+	jg		jump_matching
+
 	movq	$0, %r14
 	find_closing_bracket_loop:
-		incq	%r12
+		inc		%r12
 
-		cmpb	$'[', (%r12)
+		cmpb	$'[', FILEBUFF(%r12)
 		jne	check_open_end
 		incq	%r14
 		check_open_end:
 
-		cmpb	$']', (%r12)
+		cmpb	$']', FILEBUFF(%r12)
 		jne	check_closing_end
 		cmpq	$0, %r14
-		je	brainfuck_loop_end
+		je	find_closing_bracket_loop_end
 		decq	%r14
 		check_closing_end:
 		
 		jmp	find_closing_bracket_loop
 
+	find_closing_bracket_loop_end:
+		movq	$0, %rdx
+		movq	%r12, %rax
+		movw	%ax, JUMPTABLE(%rdx, %r15, 2)
+		jmp	brainfuck_loop_end
+
+jump_matching:
+	mov		$0, %rdx
+	movw	JUMPTABLE(%rdx, %r15, 2), %ax
+	movq	%rax, %r12
+	jmp		brainfuck_loop_end
+
 closing_bracket:
 	cmpb	$0, (%r13)
 	jne	find_opening_bracket
 	
+	addq 	$8, %rsp
+	
 	jmp	brainfuck_loop_end	
 
 find_opening_bracket:
-	movq	$0, %r14
-	find_opening_bracket_loop:
-		decq	%r12
+	movq	(%rsp), %r12
 
-		cmpb	$']', (%r12)
-		jne	check_closing_end2
-		incq	%r14
-		check_closing_end2:
-		
-		cmpb	$'[', (%r12)
-		jne	check_open_end2
-		cmpq	$0, %r14
-		je	brainfuck_loop_end
-		decq	%r14
-		check_open_end2:
-
-		jmp	find_opening_bracket_loop
+	jmp	brainfuck_loop_end
 
 brainfuck_end:
 	movq	$0, %rax
@@ -212,7 +215,7 @@ file_error:
 	movq	$invalidfile, %rdi	# First argument: string
 	call	printf
 
-	jmp 	end
+	jmp	end
 
 invalid_argc:
 	movq	$0, %rax		# Clear rax
