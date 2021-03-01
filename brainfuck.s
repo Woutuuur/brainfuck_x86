@@ -170,23 +170,23 @@ find_closing_bracket:
 	jg	jump_matching
 
 	# Else: find it
-	movq	$0, %r14
+	movq	$0, %r14					# Set 'bracketCount' to 0
 	find_closing_bracket_loop:
-		inc	%r12
+		inc	%r12					# Move to next char
 
-		cmpb	$'[', FILEBUFF(%r12)
-		jne	check_open_end
-		incq	%r14
+		cmpb	$'[', FILEBUFF(%r12)			# If it's an opening bracket,
+		jne	check_open_end				
+		incq	%r14					# increment 'bracketCount'
 		check_open_end:
 
-		cmpb	$']', FILEBUFF(%r12)
-		jne	check_closing_end
-		cmpq	$0, %r14
-		je	find_closing_bracket_loop_end
-		decq	%r14
+		cmpb	$']', FILEBUFF(%r12)			# If it's a closing bracket
+		jne	check_closing_end			
+		cmpq	$0, %r14				# and 'bracketCount' is 0,
+		je	find_closing_bracket_loop_end		# then we found the matching bracket
+		decq	%r14					# Else if 'bracketCount' is not 0, decrement 'bracketCount'
 		check_closing_end:
 		
-		jmp	find_closing_bracket_loop
+		jmp	find_closing_bracket_loop		# Back to beginning of loop
 
 	# Once it has been found, add it to jumptable
 	find_closing_bracket_loop_end:
@@ -231,8 +231,7 @@ brainfuck_end:
 	popq	%rbp
 	ret
 
-# Print error message when we are unable to open
-# the file
+# Print error message when we are unable to open the file
 file_error:
 	movq	$0, %rax		# Clear rax
 	movq	$invalidfile, %rdi	# First argument: string
