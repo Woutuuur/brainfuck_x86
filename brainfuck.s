@@ -3,7 +3,7 @@
 # * Description: Interpreter for the brainfuck language					*
 # ***************************************************************************************
 .bss
-FILEBUFF: 	.skip 64000	
+FILEBUFF: 	.skip 500000
 JUMPTABLE:	.skip 128000
 MEMORY:		.skip 8192
 PRINTBUFF: 	.skip 256

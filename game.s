@@ -16,8 +16,11 @@ cooked:		.asciz	"/bin/stty cooked"
 .data
 WIDTH:		.quad 100
 HEIGHT: 	.quad 50
+X_END:		.quad 83
 PLAYER1_X:	.quad 50
 PLAYER2_X:	.quad 50
+BALL_X:		.quad 50
+BALL_Y:		.quad 25
 
 .global main
 # ***************************************************************************************
@@ -34,11 +37,6 @@ end:
 pong:
 	movq	$raw, %rdi
 	call	system
-
-#	movq	$16, %rax		# sys_ioctl syscall
-#	movq	$0x5402, %rsi		# Load `TCSETS` to rsi (request)
-#	movq	$0, %rdi		# Load `0`/stdin to rdi (fd)
-#	syscall
 
 pong_loop:	
 	movq	$0, %rax
@@ -61,12 +59,15 @@ pong_loop:
 	incq	%r13
 
 	mov	$0, %r12
+	cmpq	$0, PLAYER1_X
+	je	indent_1_end
 	indent_1:
 		movb 	$' ', DISPLAY_BUFFER(%r13)
 		inc	%r12	
 		incq 	%r13
 		cmpq	PLAYER1_X, %r12
 		jne	indent_1
+	indent_1_end:
 
 	movb 	$0, DISPLAY_BUFFER(%r13)
 	incq	%r13
@@ -83,8 +84,41 @@ pong_loop:
 		movb	$'\n', DISPLAY_BUFFER(%r13)
 		inc	%r12
 		incq	%r13
+		
+		cmpq	$BALL_Y, %r12
+		jne	print_ball_end
+		movq	$0, %rax
+		print_ball:
+			
+			incq	%rax
+		print_ball_end:
+
 		cmp	HEIGHT, %r12
 		jne	append_screen	
+
+	mov	$0, %r12
+	cmpq	$0, PLAYER2_X
+	je	indent_2_end
+	indent_2:
+		movb 	$' ', DISPLAY_BUFFER(%r13)
+		inc	%r12	
+		incq 	%r13
+		cmpq	PLAYER2_X, %r12
+		jne	indent_2
+	indent_2_end:
+
+	movb 	$0, DISPLAY_BUFFER(%r13)
+	incq	%r13
+
+	movq	$0, %rax
+	movq	$bar, %rsi
+	movq	$DISPLAY_BUFFER, %rdi
+	call	strcat
+
+	addq	$17, %r13
+
+	movb	$'\n', DISPLAY_BUFFER(%r13)
+	incq	%r13
 	
 	mov	$0, %r12
 	append_border_bot:
@@ -103,15 +137,11 @@ pong_loop:
 	movq	$stringformat, %rdi
 	call	printf
 
-	movq	$100000000, %r12
-	dirty_delay:
+	movq	$10000000, %r12
+	ugly_delay:
 		decq	%r12
 		cmpq	$0, %r12
-		jne	dirty_delay
-
-	#movq	$0, %rax
-	#movq	$100, %rdi
-	#call	usleep
+		jg	ugly_delay
 
 	#movq	$2500, %r12
 	#clear_buffer:
@@ -137,22 +167,22 @@ read_input:
 	cmpq	$0, %rax
 	je	read_input_end
 
-	movq	-8(%rbp), %rax
+	popq	%rax
 
-	cmpb	$'a', (%rax)
+	cmpb	$'a', %al
 	je	player1_left
-	cmpb	$'d', (%rax)
+	cmpb	$'d', %al
 	je	player1_right
-	cmpb	$'j', (%rax)
-	je	player2_left
-	cmpb	$'l', (%rax)
-	je	player2_right
-	cmpb	$'q', (%rax)
-	je	pong_end
+#	cmpb	$'j', %al
+#	je	player2_left
+#	cmpb	$'l', %al
+#	je	player2_right
+	cmpb	$'q', %al
+	je	end
 
 	jmp	read_input_end	
 
-	movq	WIDTH, %rax
+	movq	X_END, %rax
 
 	player1_left:
 		cmpq	$0, PLAYER1_X
@@ -164,20 +194,13 @@ read_input:
 		je	read_input_end
 		incq	PLAYER1_X
 		jmp	read_input_end
-	player2_left:
-		cmpq	$0, PLAYER2_X
-		je	read_input_end
-		decq	PLAYER2_X
-		jmp	read_input_end
-	player2_right:
-		cmpq	%rax, PLAYER2_X
-		je	read_input_end
-		incq	PLAYER2_X
-		jmp	read_input_end
+
 read_input_end:
 	movq	%rbp, %rsp
 	popq	%rbp
 	ret	
 
 pong_end:
+	movq	$cooked, %rdi
+	call	system
 	ret	
