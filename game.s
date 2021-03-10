@@ -19,8 +19,10 @@ HEIGHT: 	.quad 50
 X_END:		.quad 83
 PLAYER1_X:	.quad 50
 PLAYER2_X:	.quad 50
-BALL_X:		.quad 50
-BALL_Y:		.quad 25
+BALL_X:		.quad 10
+BALL_Y:		.quad 15
+XDIR:		.quad 1
+YDIR:		.quad -1
 
 .global main
 # ***************************************************************************************
@@ -85,12 +87,19 @@ pong_loop:
 		inc	%r12
 		incq	%r13
 		
-		cmpq	$BALL_Y, %r12
+		cmpq	BALL_Y, %r12
 		jne	print_ball_end
-		movq	$0, %rax
+		movq	$0, %r15
 		print_ball:
-			
-			incq	%rax
+			cmpq	BALL_X, %r15
+			je	print_ball_2
+			movb	$' ', DISPLAY_BUFFER(%r13)
+			incq	%r13
+			incq	%r15
+			jmp	print_ball
+		print_ball_2:
+			movb 	$'X', DISPLAY_BUFFER(%r13)
+			incq	%r13
 		print_ball_end:
 
 		cmp	HEIGHT, %r12
@@ -137,18 +146,58 @@ pong_loop:
 	movq	$stringformat, %rdi
 	call	printf
 
-	movq	$10000000, %r12
+	movq	$300000000, %r12
 	ugly_delay:
 		decq	%r12
 		cmpq	$0, %r12
 		jg	ugly_delay
 
-	#movq	$2500, %r12
-	#clear_buffer:
-	#	movb	$0, DISPLAY_BUFFER(%r12)
-	#	decq 	%r12
-	#	cmpq	$-1, %r12
-	#	jne 	clear_buffer
+	movq	XDIR, %rax
+	addq	%rax, BALL_X
+
+	movq	YDIR, %rax
+	addq	%rax, BALL_Y
+	
+	movq	BALL_X, %rax
+	subq	$7, %rax
+	
+	set_limit1:
+	cmpq	$0, %rax
+	jg	set_limit2
+	movq	$0, %rax
+	set_limit2:
+	movq	WIDTH, %rdx
+	subq	$17, %rdx
+	cmpq	%rdx, %rax
+	jl	set_limit_end
+	movq	%rdx, %rax
+	set_limit_end:
+	
+	movq	%rax, PLAYER2_X
+	movq	%rax, PLAYER1_X
+	
+	cmpq	$0, BALL_X
+	jne	x_inv_end
+	negq	XDIR
+	x_inv_end:
+
+	movq	WIDTH, %rax	
+	cmpq	%rax, BALL_X
+	jne	x_inv_end2
+	negq	XDIR
+	x_inv_end2:
+		
+	cmpq	$1, BALL_Y
+	jne	y_inv_end
+	negq	YDIR
+	y_inv_end:
+
+	movq	HEIGHT, %rax	
+	subq	$1, %rax
+	cmpq	%rax, BALL_Y
+	jne	y_inv_end2
+	negq	YDIR
+	y_inv_end2:
 
 	jmp	pong_loop
 
