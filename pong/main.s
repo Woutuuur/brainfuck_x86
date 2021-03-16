@@ -14,6 +14,23 @@ main:
 
 	call	clear
 
+	# Clear top bar
+	movb    $' ', %al 
+	movb    $0x0F, %ah 
+	movl    $80, %ecx
+	movl    $vga_memory, %edi
+	cld 
+	rep     stosw
+
+	# Reset score
+	movb	$'0', vga_memory + 72
+	movb	$' ', vga_memory + 74
+	movb	$' ', vga_memory + 76
+	movb	$'-', vga_memory + 78
+	movb	$' ', vga_memory + 80
+	movb	$' ', vga_memory + 82
+	movb	$'0', vga_memory + 84
+
 loop:
 	movl	$50, %ebx
 	call	delay
@@ -23,9 +40,9 @@ loop:
 	movl	ydir, %eax
 	addl	%eax, bally
 
-	cmpl	$0, bally
+	cmpl	$1, bally
 	jle		invert_bally
-	cmpl	$25, bally
+	cmpl	$24, bally
 	jge		invert_bally
 	bally_invert_end:
 
@@ -51,9 +68,9 @@ invert_bally:
 
 delay:
 	cmpl	%ebx, time
-	jl	delay 
+	jl	delay
 	ret
-			
+
 clear:
 	pushl   %eax
 	pushl   %ecx
@@ -62,6 +79,7 @@ clear:
 	movb    $0x0F, %ah 
 	movl    $25*80, %ecx
 	movl    $vga_memory, %edi
+	addl	$160, %edi
 	cld 
 	rep     stosw
 
