@@ -1,5 +1,3 @@
-# A simple example that uses bootlib.
-
 .global main, time, ballx, bally, xdir, ydir, p1y, p2y
 
 .text
