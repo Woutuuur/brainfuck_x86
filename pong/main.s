@@ -67,6 +67,7 @@ invert_bally:
 	jmp		bally_invert_end
 
 delay:
+	call 	paddle_inputs
 	cmpl	%ebx, time
 	jl	delay
 	ret
@@ -85,6 +86,47 @@ clear:
 
 	popl	%ecx
 	popl	%eax
+	ret
+
+paddle_inputs:
+	pushl	%ebp                        # | Prologue.
+	movl	%esp, %ebp                  # /
+
+
+	cmpb    $1, (curr_key)              # | If current key is the UP key,
+	je      move_paddle_up              # | move the paddle up.
+	cmpb    $2, (curr_key)              # | If current key is the DOWN key,
+	je      move_paddle_down            # | move the paddle down
+
+	movl	%ebp, %esp                  # \
+	popl	%ebp                        # | Epilogue.
+	ret
+
+move_paddle_up:
+	movl    p1y, %eax           # \
+
+	cmpl    $17, %eax                    # | If the position is >= 23,
+	jge     move_paddle_done            # | Disallow move and exit paddle input function.
+
+	incl    p1y          				# Subtract 160 from p1y (1 line=160)
+
+	jmp     move_paddle_done            # Exit paddle input function.
+
+move_paddle_down:
+	movl    p1y, %eax           # \
+
+	cmpl    $1, %eax                    # | If the position is <= 1,
+	jle     move_paddle_done            # | Disallow move and exit paddle input function.
+
+	decl    p1y         				# Subtract 160 from p1y (1 line=160)
+
+	jmp     move_paddle_done            # Exit paddle input function.
+
+move_paddle_done:
+	movb    $0, curr_key                # Set the pressed key back to none.
+
+	movl	%ebp, %esp                  # \
+	popl	%ebp                        # | Epilogue.
 	ret
 
 .data
