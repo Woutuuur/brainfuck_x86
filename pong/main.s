@@ -1,6 +1,6 @@
 # A simple example that uses bootlib.
 
-.global main, time
+.global main, time, ballx, bally, xdir, ydir, p1y, p2y
 
 .text
 main:
@@ -53,68 +53,7 @@ invert_bally:
 
 delay:
 	cmpl	%ebx, time
-	jl		delay 
-	ret
-
-render:	
-	# Render the ball
-	movl	$160, %eax
-	movl	bally, %ebx
-	mull	%ebx
-	addl	ballx, %eax
-	movl	%eax, %ebx		
-
-	movl 	$vga_memory, %eax
-	addl	%ebx, %eax
-	movb 	$254, (%eax)
-
-	# Render player 1
-	movl	$160, %eax
-	movl	p1y, %ebx
-	mull	%ebx
-	movl	%eax, %ebx
-
-	movl 	$vga_memory, %eax
-	addl 	%ebx, %eax
-	movb 	$219, (%eax)
-	addl	$160, %eax
-	movb 	$219, (%eax)
-	addl	$160, %eax
-	movb 	$219, (%eax)
-	addl	$160, %eax
-	movb 	$219, (%eax)
-	addl	$160, %eax
-	movb 	$219, (%eax)
-	addl	$160, %eax
-	movb 	$219, (%eax)
-	addl	$160, %eax
-	movb 	$219, (%eax)
-	addl	$160, %eax
-
-	# Render player 2
-	movl	$160, %eax
-	movl	p2y, %ebx
-	mull	%ebx
-	addl	$158, %eax
-	movl	%eax, %ebx
-
-	movl 	$vga_memory, %eax
-	addl 	%ebx, %eax
-	movb 	$219, (%eax)
-	addl	$160, %eax
-	movb 	$219, (%eax)
-	addl	$160, %eax
-	movb 	$219, (%eax)
-	addl	$160, %eax
-	movb 	$219, (%eax)
-	addl	$160, %eax
-	movb 	$219, (%eax)
-	addl	$160, %eax
-	movb 	$219, (%eax)
-	addl	$160, %eax
-	movb 	$219, (%eax)
-	addl	$160, %eax
-
+	jl	delay 
 	ret
 			
 clear:
