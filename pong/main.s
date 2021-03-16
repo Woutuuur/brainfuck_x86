@@ -12,15 +12,16 @@ main:
 	call 	color_text_mode
 	call 	hide_cursor
 
-	call	clear
-
 	# Clear top bar
 	movb    $' ', %al 
-	movb    $0x0F, %ah 
+	movb    $0x70, %ah 
 	movl    $80, %ecx
 	movl    $vga_memory, %edi
 	cld 
 	rep     stosw
+
+	# Clear the screen
+	call	clear
 
 	# Reset score
 	movb	$'0', vga_memory + 72
@@ -30,10 +31,10 @@ main:
 	movb	$' ', vga_memory + 80
 	movb	$' ', vga_memory + 82
 	movb	$'0', vga_memory + 84
-
+	
+	call	render
 loop:
-	movl	$50, %ebx
-	call	delay
+	call	read_inputs
 
 	movl	xdir, %eax
 	addl	%eax, ballx
@@ -47,9 +48,9 @@ loop:
 	bally_invert_end:
 
 	cmpl	$0, ballx
-	jle		invert_ballx
+	jle		check_player1_collision
 	cmpl	$158, ballx
-	jge		invert_ballx
+	jge		check_player2_collision
 	ballx_invert_end:
 
 	call	clear
@@ -58,18 +59,73 @@ loop:
 	movl	$0, time
 	jmp		loop
 
+check_player1_collision:
+	movl	bally, %eax
+	movl	p1y, %ebx
+
+	cmpl	p1y, %eax
+	jl		player2_score
+	addl	$7, %ebx
+	cmpl	%ebx, %eax
+	jg		player2_score
+
+	jmp		collsion_check_end
+
+check_player2_collision:
+	movl	bally, %eax
+	movl	p2y, %ebx
+
+	cmpl	p2y, %eax
+	jl		player1_score
+	addl	$7, %ebx
+	cmpl	%ebx, %eax
+	jg		player1_score
+
+	jmp		collsion_check_end
+
+collsion_check_end:
+	call 	invert_ballx
+	jmp		ballx_invert_end
+
+player1_score:
+	movl 	$vga_memory, %eax
+	addl	$72, %eax
+	incl	(%eax)
+	call	reset_ball
+	jmp		collsion_check_end
+
+player2_score:
+	movl 	$vga_memory, %eax
+	addl	$84, %eax
+	incl	(%eax)
+	call	reset_ball
+	jmp		collsion_check_end
+
+reset_ball:
+	movl	$80, ballx
+	movl	$12, bally
+	movl	xdir, %eax
+	negl	%eax
+	movl	%eax, prev_dir
+	movl	$0, xdir
+	movl 	$0, ydir
+	movl	$2000, round_delay
+	ret
+
 invert_ballx:
 	negl	xdir
-	jmp		ballx_invert_end
+	ret
 
 invert_bally:
 	negl	ydir
 	jmp		bally_invert_end
 
-delay:
-	call 	paddle_inputs
-	cmpl	%ebx, time
-	jl	delay
+read_inputs:
+	movl	main_delay, %ebx
+	read_loop:
+		call 	paddle_inputs
+		cmpl	%ebx, time
+		jl		read_loop
 	ret
 
 clear:
@@ -89,51 +145,53 @@ clear:
 	ret
 
 paddle_inputs:
-	pushl	%ebp                        # | Prologue.
-	movl	%esp, %ebp                  # /
+	pushl	%ebp
+	movl	%esp, %ebp
 
+	cmpb    $1, (curr_key)
+	je      move_paddle_up
+	cmpb    $2, (curr_key)
+	je      move_paddle_down
 
-	cmpb    $1, (curr_key)              # | If current key is the UP key,
-	je      move_paddle_up              # | move the paddle up.
-	cmpb    $2, (curr_key)              # | If current key is the DOWN key,
-	je      move_paddle_down            # | move the paddle down
-
-	movl	%ebp, %esp                  # \
-	popl	%ebp                        # | Epilogue.
+	movl	%ebp, %esp
+	popl	%ebp
 	ret
 
 move_paddle_up:
-	movl    p1y, %eax           # \
+	movl    p1y, %eax
 
-	cmpl    $17, %eax                    # | If the position is >= 23,
-	jge     move_paddle_done            # | Disallow move and exit paddle input function.
+	cmpl    $17, %eax
+	jge     move_paddle_done
 
-	incl    p1y          				# Subtract 160 from p1y (1 line=160)
+	incl    p1y
 
-	jmp     move_paddle_done            # Exit paddle input function.
+	jmp     move_paddle_done
 
 move_paddle_down:
-	movl    p1y, %eax           # \
+	movl    p1y, %eax
 
-	cmpl    $1, %eax                    # | If the position is <= 1,
-	jle     move_paddle_done            # | Disallow move and exit paddle input function.
+	cmpl    $1, %eax
+	jle     move_paddle_done
 
-	decl    p1y         				# Subtract 160 from p1y (1 line=160)
+	decl    p1y
 
-	jmp     move_paddle_done            # Exit paddle input function.
+	jmp     move_paddle_done
 
 move_paddle_done:
-	movb    $0, curr_key                # Set the pressed key back to none.
+	movb    $0, curr_key
 
-	movl	%ebp, %esp                  # \
-	popl	%ebp                        # | Epilogue.
+	movl	%ebp, %esp
+	popl	%ebp
 	ret
 
 .data
-	time: 	.long 0
-	p1y:	.long 12
-	p2y:	.long 12
-	ballx:	.long 10
-	bally:	.long 15
-	xdir:	.long 2
-	ydir:	.long 1
+	time: 			.long 0
+	p1y:			.long 12
+	p2y:			.long 12
+	ballx:			.long 80
+	bally:			.long 12
+	xdir:			.long -2
+	ydir:			.long 1
+	prev_dir: 		.long 0
+	round_delay:	.long 2000
+	main_delay:		.long 50
