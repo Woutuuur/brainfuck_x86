@@ -33,8 +33,15 @@ main:
 	movb	$'0', vga_memory + 84
 	
 	call	render
+
 loop:
 	call	read_inputs
+
+	movl	delay_time, %ebx
+	cmpl	%ebx, round_delay
+	jg		loop_end
+
+	movl	$0, round_delay
 
 	movl	xdir, %eax
 	addl	%eax, ballx
@@ -53,10 +60,13 @@ loop:
 	jge		check_player2_collision
 	ballx_invert_end:
 
+	loop_end:
 	call	clear
 	call	render
-
+	movl	time, %ebx
+	addl	%ebx, delay_time
 	movl	$0, time
+	
 	jmp		loop
 
 check_player1_collision:
@@ -104,12 +114,8 @@ player2_score:
 reset_ball:
 	movl	$80, ballx
 	movl	$12, bally
-	movl	xdir, %eax
-	negl	%eax
-	movl	%eax, prev_dir
-	movl	$0, xdir
-	movl 	$0, ydir
 	movl	$2000, round_delay
+	movl	$0, delay_time
 	ret
 
 invert_ballx:
@@ -160,7 +166,7 @@ paddle_inputs:
 move_paddle_up:
 	movl    p1y, %eax
 
-	cmpl    $17, %eax
+	cmpl    $18, %eax
 	jge     move_paddle_done
 
 	incl    p1y
@@ -186,6 +192,7 @@ move_paddle_done:
 
 .data
 	time: 			.long 0
+	delay_time:		.long 0
 	p1y:			.long 12
 	p2y:			.long 12
 	ballx:			.long 80
