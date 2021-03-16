@@ -17,13 +17,25 @@ main:
 	call	clear
 
 loop:
-	movl	$100, %ebx
+	movl	$50, %ebx
 	call	delay
 
-	incl	ballx
-	incl	ballx
+	movl	xdir, %eax
+	addl	%eax, ballx
+	movl	ydir, %eax
+	addl	%eax, bally
+
+	cmpl	$0, bally
+	jle		invert_bally
+	cmpl	$25, bally
+	jge		invert_bally
+	bally_invert_end:
 
 	cmpl	$0, ballx
+	jle		invert_ballx
+	cmpl	$158, ballx
+	jge		invert_ballx
+	ballx_invert_end:
 
 	call	clear
 	call	render
@@ -32,12 +44,12 @@ loop:
 	jmp		loop
 
 invert_ballx:
-
-	ret
+	negl	xdir
+	jmp		ballx_invert_end
 
 invert_bally:
-
-	ret
+	negl	ydir
+	jmp		bally_invert_end
 
 delay:
 	cmpl	%ebx, time
@@ -124,5 +136,7 @@ clear:
 	time: 	.long 0
 	p1y:	.long 12
 	p2y:	.long 12
-	ballx:	.long 30
+	ballx:	.long 10
 	bally:	.long 15
+	xdir:	.long 2
+	ydir:	.long 1
