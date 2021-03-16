@@ -1,106 +1,125 @@
 # A simple example that uses bootlib.
 
-.global main
+.global main, time
 
 .text
-	main:
-		# Set the timer frequency to 1000Hz
-		addl 	$4, %esp
+main:
+	pushl	$1000
+	call	set_timer_frequency
+	addl	$4, %esp
 
-		# Register the handle for the timer IRQ (IRQ0) and enable it.
-		pushl 	$0
-		addl 	$8, %esp
+	call	set_handlers
 
-		# Set up VGA stuff
-		call 	color_text_mode
-		call 	hide_cursor
-		call 	vsync
+	# Set up VGA stuff
+	call 	color_text_mode
+	call 	hide_cursor
 
-		# Clear the screen
-		movb 	$' ', %al
-		movb	$0x0F, %ah
-		#movb 	$0x4E, %ah
-		movl 	$25*80, %ecx
-		movl 	$vga_memory, %edi
-		cld
-		rep 	stosw
+	call	clear
 
-	loop:
-		call	clear
-		# Render the ball
-		movl	$160, %eax
-		movl	bally, %ebx
-		mull	%ebx
-		addl	ballx, %eax
-		movl	%eax, %ebx		
+loop:
+	movl	$100, %ebx
+	call	delay
 
-		movl 	$vga_memory, %eax
-		addl	%ebx, %eax
-		movb 	$254, (%eax)
+	incl	ballx
+	incl	ballx
 
-		# Render player 1
-		movl	$160, %eax
-		movl	p1y, %ebx
-		mull	%ebx
-		movl	%eax, %ebx
+	cmpl	$0, ballx
 
-		movl 	$vga_memory, %eax
-		addl 	%ebx, %eax
-		movb 	$219, (%eax)
-		addl	$160, %eax
-		movb 	$219, (%eax)
-		addl	$160, %eax
-		movb 	$219, (%eax)
-		addl	$160, %eax
-		movb 	$219, (%eax)
-		addl	$160, %eax
-		movb 	$219, (%eax)
-		addl	$160, %eax
-		movb 	$219, (%eax)
-		addl	$160, %eax
-		movb 	$219, (%eax)
-		addl	$160, %eax
+	call	clear
+	call	render
 
-		# Render player 2
-		movl	$160, %eax
-		movl	p2y, %ebx
-		mull	%ebx
-		addl	$158, %eax
-		movl	%eax, %ebx
+	movl	$0, time
+	jmp		loop
 
-		movl 	$vga_memory, %eax
-		addl 	%ebx, %eax
-		movb 	$219, (%eax)
-		addl	$160, %eax
-		movb 	$219, (%eax)
-		addl	$160, %eax
-		movb 	$219, (%eax)
-		addl	$160, %eax
-		movb 	$219, (%eax)
-		addl	$160, %eax
-		movb 	$219, (%eax)
-		addl	$160, %eax
-		movb 	$219, (%eax)
-		addl	$160, %eax
-		movb 	$219, (%eax)
-		addl	$160, %eax
-		
-		jmp	loop
+invert_ballx:
 
+	ret
+
+invert_bally:
+
+	ret
+
+delay:
+	cmpl	%ebx, time
+	jl		delay 
+	ret
+
+render:	
+	# Render the ball
+	movl	$160, %eax
+	movl	bally, %ebx
+	mull	%ebx
+	addl	ballx, %eax
+	movl	%eax, %ebx		
+
+	movl 	$vga_memory, %eax
+	addl	%ebx, %eax
+	movb 	$254, (%eax)
+
+	# Render player 1
+	movl	$160, %eax
+	movl	p1y, %ebx
+	mull	%ebx
+	movl	%eax, %ebx
+
+	movl 	$vga_memory, %eax
+	addl 	%ebx, %eax
+	movb 	$219, (%eax)
+	addl	$160, %eax
+	movb 	$219, (%eax)
+	addl	$160, %eax
+	movb 	$219, (%eax)
+	addl	$160, %eax
+	movb 	$219, (%eax)
+	addl	$160, %eax
+	movb 	$219, (%eax)
+	addl	$160, %eax
+	movb 	$219, (%eax)
+	addl	$160, %eax
+	movb 	$219, (%eax)
+	addl	$160, %eax
+
+	# Render player 2
+	movl	$160, %eax
+	movl	p2y, %ebx
+	mull	%ebx
+	addl	$158, %eax
+	movl	%eax, %ebx
+
+	movl 	$vga_memory, %eax
+	addl 	%ebx, %eax
+	movb 	$219, (%eax)
+	addl	$160, %eax
+	movb 	$219, (%eax)
+	addl	$160, %eax
+	movb 	$219, (%eax)
+	addl	$160, %eax
+	movb 	$219, (%eax)
+	addl	$160, %eax
+	movb 	$219, (%eax)
+	addl	$160, %eax
+	movb 	$219, (%eax)
+	addl	$160, %eax
+	movb 	$219, (%eax)
+	addl	$160, %eax
+
+	ret
+			
 clear:
-		pushl   %eax
-		pushl   %ecx
+	pushl   %eax
+	pushl   %ecx
 
-		movb    $' ', %al 
-		movb    $0x0F, %ah 
-		movl    $25*80, %ecx
-		movl    $vga_memory, %edi
-		cld 
-		rep     stosw
+	movb    $' ', %al 
+	movb    $0x0F, %ah 
+	movl    $25*80, %ecx
+	movl    $vga_memory, %edi
+	cld 
+	rep     stosw
 
-		popl	%ecx
-		popl	%eax
-		ret
+	popl	%ecx
+	popl	%eax
+	ret
+
 .data
 	time: 	.long 0
 	p1y:	.long 12
