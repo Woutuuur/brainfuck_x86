@@ -54,9 +54,9 @@ loop:
 	jge		invert_bally
 	bally_invert_end:
 
-	cmpl	$0, ballx
+	cmpl	$2, ballx
 	jle		check_player1_collision
-	cmpl	$158, ballx
+	cmpl	$156, ballx
 	jge		check_player2_collision
 	ballx_invert_end:
 
