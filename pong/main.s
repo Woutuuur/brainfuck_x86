@@ -151,40 +151,48 @@ clear:
 	ret
 
 paddle_inputs:
-	pushl	%ebp
-	movl	%esp, %ebp
+	pushl	%ebp                        # | Prologue.
+	movl	%esp, %ebp                  # /
 
-	cmpb    $1, (curr_key)
-	je      move_paddle_up
-	cmpb    $2, (curr_key)
-	je      move_paddle_down
+	pushl	$p1y
+	cmpb    $1, (curr_key)              # | If current key is the UP key,
+	je      move_paddle_up              # | move the paddle up.
+	cmpb    $2, (curr_key)              # | If current key is the DOWN key,
+	je      move_paddle_down            # | move the paddle down
 
-	movl	%ebp, %esp
-	popl	%ebp
+	pushl	$p2y
+	cmpb    $1, (curr_key2)              # | If current key is the UP key,
+	je      move_paddle_up              # | move the paddle up.
+	cmpb    $2, (curr_key2)              # | If current key is the DOWN key,
+	je      move_paddle_down            # | move the paddle down
+
+	movl	%ebp, %esp                  # \
+	popl	%ebp                        # | Epilogue.
 	ret
 
-move_paddle_up:
-	movl    p1y, %eax
+move_paddle_down:
+	popl 	%eax
 
-	cmpl    $18, %eax
-	jge     move_paddle_done
+	cmpl    $17, (%eax)                  # | If the position is >= 23,
+	jge     move_paddle_done            # | Disallow move and exit paddle input function.
 
-	incl    p1y
+	incl    (%eax)         				# Subtract 160 from p1y (1 line=160)
 
 	jmp     move_paddle_done
 
-move_paddle_down:
-	movl    p1y, %eax
+move_paddle_up:
+	popl 	%eax
 
-	cmpl    $1, %eax
-	jle     move_paddle_done
+	cmpl    $1, (%eax)                  # | If the position is <= 1,
+	jle     move_paddle_done            # | Disallow move and exit paddle input function.
 
-	decl    p1y
+	decl    (%eax)        				# Subtract 160 from p1y (1 line=160)
 
 	jmp     move_paddle_done
 
 move_paddle_done:
-	movb    $0, curr_key
+	movb    $0, curr_key                # Set the pressed key back to none.
+	movb    $0, curr_key2                # Set the pressed key back to none.
 
 	movl	%ebp, %esp
 	popl	%ebp
