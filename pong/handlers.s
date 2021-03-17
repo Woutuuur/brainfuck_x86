@@ -35,11 +35,20 @@ irq0:
 
 irq1:
 	wait:
+		
+		mov 	$0x01, %al				# Check if there is key buffer
+		inb 	$0x16, %al
+		jz		return
+		
 		movl    $0, %eax                # Empty %eax
 		inb     $0x60, %al              # Get scancode from keyboard's in and put it into %eax
-	
+		
+		jmp case_up
+		jmp wait
+		
+		
 	case_up:
-		cmpb    $UP, %al                # | If the scancode does not equal the scancode for UP
+		cmpb    $UP, %al              	# | If the scancode does not equal the scancode for UP
 		jne     case_down               # | Jump to the next case.
 		movb    $1, curr_key            # | Else, move 1 into curr_key variable.
 	case_down:
@@ -66,6 +75,7 @@ irq1:
 		cmpb    $DOWN2, %al             # | If the scancode does not equal the scancode for ENTER
 		jne     return                  # | Jump to the next case.
 		movb    $2, curr_key2            # | Else, move 4 into curr_key variable.
+		ret
 	return:
 		movb    $0, %al                 # No keys were found so clear the scancode.
 		jmp     end_of_irq1             # Exit.
