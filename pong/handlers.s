@@ -31,42 +31,22 @@ set_handlers:
 
 irq0:
 	incl	time
-	jmp	end_of_irq0
+	jmp		end_of_irq0
 
 irq1:
-	wait:
-		movl    $0, %eax                # ah = 0 means: read a keystroke
-		inb     $0x60, %al              # Get scancode from keyboard
-	
+	movl    $0, %eax                # ah = 0 means: read a keystroke
+	inb     $0x60, %al              # Get scancode from keyboard
 	case_up:
 		cmpb    $UP, %al                # | If the scancode does not equal the scancode for UP
 		jne     case_down               # | Jump to the next case.
 		movb    $1, curr_key            # | Else, move 1 into curr_key variable.
 	case_down:
 		cmpb    $DOWN, %al              # | If the scancode does not equal the scancode for DOWN
-		jne     case_space              # | Jump to the next case.
+		jne     case_esc              	# | Jump to the next case.
 		movb    $2, curr_key            # | Else, move 2 into curr_key variable.
-	case_space:
-		cmpb    $SPACE, %al             # | If the scancode does not equal the scancode for SPACE
-		jne     case_esc                # | Jump to the next case.
-		movb    $3, curr_key            # | Else, move 3 into curr_key variable.
 	case_esc:
 		cmpb    $ESC, %al               # | If the scancode does not equal the scancode for ESC
-		jne     case_enter              # | Jump to the next case.
-		movb    $4, curr_key            # | Else, move 4 into curr_key variable.
-	case_enter:
-		cmpb    $ENTER, %al             # | If the scancode does not equal the scancode for ENTER
-		jne     case_up2                  # | Jump to the next case.
-		movb    $5, curr_key            # | Else, move 4 into curr_key variable.
-	case_up2:
-		cmpb    $UP2, %al             # | If the scancode does not equal the scancode for ENTER
-		jne     case_down2                  # | Jump to the next case.
-		movb    $1, curr_key2           # | Else, move 4 into curr_key variable.
-	case_down2:
-		cmpb    $DOWN2, %al             # | If the scancode does not equal the scancode for ENTER
-		jne     return                  # | Jump to the next case.
-		movb    $2, curr_key2            # | Else, move 4 into curr_key variable.
+		jne     return              	# | Jump to the next case.
+		movb    $3, curr_key            # | Else, move 4 into curr_key variable.
 	return:
-		movb    $0, %al                 # No keys were found so clear the scancode.
 		jmp     end_of_irq1             # Exit.
-

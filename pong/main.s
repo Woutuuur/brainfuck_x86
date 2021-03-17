@@ -60,13 +60,37 @@ loop:
 	jge		check_player2_collision
 	ballx_invert_end:
 
+	cmpl	$140, ballx
+	jle		ai_end
+	cmpl	$2, xdir
+	jne		ai_end
+
+	movl	bally, %eax
+	subl	$3, %eax
+	cmpl	%eax, p2y
+	jg		ai_move_down
+	jmp		ai_move_up
+	ai_end:		
+
+	cmpl	$9, p2y
+	je		ai_end2
+	cmpl	$9, p2y
+	jg		ai_move_down
+
+	ai_move_up:
+	incl	p2y
+	jmp		ai_end2
+	ai_move_down:
+	decl	p2y
+	jmp		ai_end2
+	ai_end2:
+
 	loop_end:
 	call	clear
 	call	render
 	movl	time, %ebx
 	addl	%ebx, delay_time
 	movl	$0, time
-	
 	jmp		loop
 
 check_player1_collision:
@@ -101,21 +125,22 @@ player1_score:
 	movl 	$vga_memory, %eax
 	addl	$72, %eax
 	incl	(%eax)
-	call	reset_ball
+	call	reset
 	jmp		collsion_check_end
 
 player2_score:
 	movl 	$vga_memory, %eax
 	addl	$84, %eax
 	incl	(%eax)
-	call	reset_ball
+	call	reset
 	jmp		collsion_check_end
 
-reset_ball:
+reset:
 	movl	$80, ballx
 	movl	$12, bally
 	movl	$2000, round_delay
 	movl	$0, delay_time
+	movl	$9, p1y
 	ret
 
 invert_ballx:
@@ -151,48 +176,41 @@ clear:
 	ret
 
 paddle_inputs:
-	pushl	%ebp                        # | Prologue.
-	movl	%esp, %ebp                  # /
+	pushl	%ebp                        # Prologue
+	movl	%esp, %ebp
 
 	pushl	$p1y
-	cmpb    $1, (curr_key)              # | If current key is the UP key,
-	je      move_paddle_up              # | move the paddle up.
-	cmpb    $2, (curr_key)              # | If current key is the DOWN key,
-	je      move_paddle_down            # | move the paddle down
+	cmpb    $1, curr_key              # If current key is the UP key,
+	je      move_paddle_up              # move the paddle up
+	cmpb    $2, curr_key              # If current key is the DOWN key,
+	je      move_paddle_down            # move the paddle down
 
-	pushl	$p2y
-	cmpb    $1, (curr_key2)              # | If current key is the UP key,
-	je      move_paddle_up              # | move the paddle up.
-	cmpb    $2, (curr_key2)              # | If current key is the DOWN key,
-	je      move_paddle_down            # | move the paddle down
-
-	movl	%ebp, %esp                  # \
-	popl	%ebp                        # | Epilogue.
+	movl	%ebp, %esp					# Epilogue
+	popl	%ebp                        
 	ret
 
 move_paddle_down:
 	popl 	%eax
 
-	cmpl    $17, (%eax)                  # | If the position is >= 23,
-	jge     move_paddle_done            # | Disallow move and exit paddle input function.
+	cmpl    $18, (%eax)                 # If the position is >= 18,
+	jge     move_paddle_done            # Exit paddle input function
 
-	incl    (%eax)         				# Subtract 160 from p1y (1 line=160)
+	incl    (%eax)
 
 	jmp     move_paddle_done
 
 move_paddle_up:
 	popl 	%eax
 
-	cmpl    $1, (%eax)                  # | If the position is <= 1,
-	jle     move_paddle_done            # | Disallow move and exit paddle input function.
+	cmpl    $1, (%eax)                  # If the position is <= 1,
+	jle     move_paddle_done            # Exit paddle input function
 
-	decl    (%eax)        				# Subtract 160 from p1y (1 line=160)
+	decl    (%eax)
 
 	jmp     move_paddle_done
 
 move_paddle_done:
-	movb    $0, curr_key                # Set the pressed key back to none.
-	movb    $0, curr_key2                # Set the pressed key back to none.
+	movb    $0, curr_key                 # Set the pressed key back to none.
 
 	movl	%ebp, %esp
 	popl	%ebp
@@ -201,10 +219,10 @@ move_paddle_done:
 .data
 	time: 			.long 0
 	delay_time:		.long 0
-	p1y:			.long 12
-	p2y:			.long 12
+	p1y:			.long 9
+	p2y:			.long 9
 	ballx:			.long 80
-	bally:			.long 12
+	bally:			.long 9
 	xdir:			.long -2
 	ydir:			.long 1
 	prev_dir: 		.long 0
