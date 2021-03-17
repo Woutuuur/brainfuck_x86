@@ -35,8 +35,8 @@ irq0:
 
 irq1:
 	wait:
-		movl    $0, %eax                # Empty %eax
-		inb     $0x60, %al              # Get scancode from keyboard's in and put it into %eax
+		movl    $0, %eax                # ah = 0 means: read a keystroke
+		inb     $0x60, %al              # Get scancode from keyboard
 	
 	case_up:
 		cmpb    $UP, %al                # | If the scancode does not equal the scancode for UP
