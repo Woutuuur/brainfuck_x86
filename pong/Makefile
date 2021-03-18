@@ -1,4 +1,3 @@
-
 boot.elf: $(wildcard bootlib/*.s *.s)
 	$(CC) -g -nostdlib -m32 -Wl,-Tbootlib/boot.ld -o $@ $^
 
@@ -9,4 +8,3 @@ test: boot.elf
 .PHONY: clean
 clean:
 	rm -f boot.elf
-

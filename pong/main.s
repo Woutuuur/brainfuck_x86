@@ -2,6 +2,7 @@
 
 .text
 main:
+	# Might have to adjust the timer frequency (1000hz) based on your machine
 	pushl	$1000
 	call	set_timer_frequency
 	addl	$4, %esp
@@ -22,44 +23,55 @@ main:
 
 	# Clear the screen
 	call	clear
-
+	# Initial scores
 	call	reset_score
-	
+	# Initial render
 	call	render
 
+# Main game loop
 loop:
-	call	read_inputs
+	call	delay
+	call 	read_inputs
 
+	# Don't do any game logic for 'round_delay'ms
+	# after a round has started
 	movl	delay_time, %ebx
 	cmpl	%ebx, round_delay
 	jg		loop_end
-
 	movl	$0, round_delay
 
+	# Move the ball
 	movl	xdir, %eax
 	addl	%eax, ballx
 	movl	ydir, %eax
 	addl	%eax, bally
 
+	# Bounce the ball on the roof and floor
 	cmpl	$1, bally
 	jle		invert_bally
 	cmpl	$24, bally
 	jge		invert_bally
 	bally_invert_end:
 
+	# Check if the ball is blocked by a paddle
 	cmpl	$2, ballx
 	jle		check_player1_collision
 	cmpl	$156, ballx
 	jge		check_player2_collision
 	ballx_invert_end:
 
+	# After the scores are added up,
+	# see if a player has won (9 points)
 	call	check_win
 
+	# The AI will respond to the ball movement only
+	# when the ball has reached x > 140
 	cmpl	$140, ballx
 	jle		ai_end
 	cmpl	$2, xdir
 	jne		ai_end
 
+	# AI movement towards the ball
 	movl	bally, %eax
 	subl	$3, %eax
 	cmpl	%eax, p2y
@@ -67,11 +79,14 @@ loop:
 	jmp		ai_move_up
 	ai_end:		
 
+	# If the AI should not respond to ball movement
+	# move the AI back to the center
 	cmpl	$9, p2y
 	je		ai_end2
 	cmpl	$9, p2y
 	jg		ai_move_down
 
+	# AI movement
 	ai_move_up:
 	incl	p2y
 	jmp		ai_end2
@@ -108,7 +123,7 @@ check_win:
 	cmpb	$'9', (%eax)
 	je		player2_win
 
-	jmp 	check_win_end
+	ret
 
 player1_win:
 	call	set_game_over_text
@@ -127,15 +142,14 @@ player2_win:
 	movb	$'t', (%eax)
 	jmp		game_over
 
-check_win_end:
-	ret
-
+# Display game over screen until SPACE is pressed
 game_over:
 	game_over_loop:
 		cmpb	$4, curr_key
 		jne 	game_over_loop
 		jmp		restart
 
+# Restart the game completely
 restart:
 	call	clear
 	call	reset_score
@@ -145,6 +159,7 @@ restart:
 	movl	$0, time
 	jmp		loop
 
+# Check if the player blocked the ball with his paddle
 check_player1_collision:
 	movl	bally, %eax
 	movl	p1y, %ebx
@@ -157,6 +172,7 @@ check_player1_collision:
 
 	jmp		collsion_check_end
 
+# Check if the AI blocked the ball with his paddle
 check_player2_collision:
 	movl	bally, %eax
 	movl	p2y, %ebx
@@ -173,6 +189,8 @@ collsion_check_end:
 	call 	invert_ballx
 	jmp		ballx_invert_end
 
+# Increment the player's score
+# and reset the board
 player1_score:
 	movl 	$vga_memory, %eax
 	addl	$72, %eax
@@ -180,6 +198,8 @@ player1_score:
 	call	reset
 	jmp		collsion_check_end
 
+# Increment the AI's score
+# and reset the board
 player2_score:
 	movl 	$vga_memory, %eax
 	addl	$84, %eax
@@ -187,6 +207,8 @@ player2_score:
 	call	reset
 	jmp		collsion_check_end
 
+# Reset the board and prepare for
+# the next round
 reset:
 	movl	$80, ballx
 	movl	$12, bally
@@ -195,20 +217,25 @@ reset:
 	movl	$9, p1y
 	ret
 
+# Bounce the ball off the paddles
 invert_ballx:
 	negl	xdir
 	ret
 
+# Bounce the ball off the roof and floor
 invert_bally:
 	negl	ydir
 	jmp		bally_invert_end
 
-read_inputs:
+# Repeat for a duration 'main_delay' as a delay
+# mainly to avoid flickering in the display, which happens
+# when the screen is being cleared before the game
+# has finished rendering the current VGA memory
+delay:
 	movl	main_delay, %ebx
-	read_loop:
-		call 	paddle_inputs
+	delay_loop:
 		cmpl	%ebx, time
-		jl		read_loop
+		jl		delay_loop
 	ret
 
 # Clear the vga memory (except the top bar)
@@ -228,59 +255,62 @@ clear:
 	popl	%eax
 	ret
 
-# Read inputs for the player's paddle
-paddle_inputs:
-	pushl	%ebp                        # Prologue
+# Read inputs for the player's paddle (and pause)
+read_inputs:
+	pushl	%ebp
 	movl	%esp, %ebp
 
+	# UP: 	move paddle up
+	# DOWN: move paddle down
+	# ESC:	pause game
 	pushl	$p1y
-	cmpb    $1, curr_key              # If current key is the UP key,
-	je      move_paddle_up              # move the paddle up
-	cmpb    $2, curr_key              # If current key is the DOWN key,
-	je      move_paddle_down            # move the paddle down
-	cmpb    $3, curr_key
-	je      paused
+	cmpb    $1, curr_key              	# If the current key is the UP key,
+	je      move_paddle_up            	# move the paddle up
+	cmpb    $2, curr_key              	# If the current key is the DOWN key,
+	je      move_paddle_down          	# move the paddle down
+	cmpb    $3, curr_key				# If the current key is the ESC key,
+	je      paused						# pause the game
 
-	movl	%ebp, %esp					# Epilogue
-	popl	%ebp                        
+	jmp		read_input_done                     
 	ret
 
+# Pause the game
 paused:
 	popl	%eax
 	movl	$0, curr_key
 	call	set_paused_text
+	# Repeat until ESC is pressed again
 	paused_loop:
 		cmpb	$3, curr_key
 		jne		paused_loop
-	jmp		paddle_input_done
+	jmp		read_input_done
 
+# Move the paddle down, but make sure it's not out of bounds
 move_paddle_down:
 	popl 	%eax
 
-	cmpl    $18, (%eax)                 # If the position is >= 18,
-	jge     paddle_input_done            # Exit paddle input function
-
+	cmpl    $18, (%eax)
+	jge     read_input_done 
 	incl    (%eax)
+	jmp     read_input_done
 
-	jmp     paddle_input_done
-
+# Move the paddle up, but make sure it's not out of bounds
 move_paddle_up:
 	popl 	%eax
-
-	cmpl    $1, (%eax)                  # If the position is <= 1,
-	jle     paddle_input_done            # Exit paddle input function
-
+	
+	cmpl    $1, (%eax)
+	jle     read_input_done
 	decl    (%eax)
+	jmp     read_input_done
 
-	jmp     paddle_input_done
-
-paddle_input_done:
-	movb    $0, curr_key                 # Set the pressed key back to none.
+read_input_done:
+	movb    $0, curr_key
 
 	movl	%ebp, %esp
 	popl	%ebp
 	ret
 
+# Clear the screen and display the pause text
 set_paused_text:
 	call	clear
 	movl	$vga_memory, %eax
@@ -350,6 +380,7 @@ set_paused_text:
 	movb	$'e', (%eax)
 	ret
 
+# Clear the screen and display the game over text
 set_game_over_text:
 	call	clear
 	movl	$vga_memory, %eax
