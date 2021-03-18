@@ -21,10 +21,10 @@ set_handlers:
 
 	# Register keyboard interrupt handler in bootlib
 	pushl	$irq1
-    pushl   $1
-    call    set_irq_handler
-    call    enable_irq
-    addl    $8, %esp
+	pushl   $1
+    	call    set_irq_handler
+	call    enable_irq
+	addl    $8, %esp
 
 	ret
 
