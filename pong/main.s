@@ -37,7 +37,7 @@ loop:
 	# after a round has started
 	movl	delay_time, %ebx
 	cmpl	%ebx, round_delay
-	jg		loop_end
+	jg	loop_end
 	movl	$0, round_delay
 
 	# Move the ball
@@ -48,16 +48,16 @@ loop:
 
 	# Bounce the ball on the roof and floor
 	cmpl	$1, bally
-	jle		invert_bally
+	jle	invert_bally
 	cmpl	$24, bally
-	jge		invert_bally
+	jge	invert_bally
 	bally_invert_end:
 
 	# Check if the ball is blocked by a paddle
 	cmpl	$2, ballx
-	jle		check_player1_collision
+	jle	check_player1_collision
 	cmpl	$156, ballx
-	jge		check_player2_collision
+	jge	check_player2_collision
 	ballx_invert_end:
 
 	# After the scores are added up,
@@ -67,7 +67,7 @@ loop:
 	# The AI will respond to the ball movement only
 	# when the ball has reached x > 140
 	cmpl	$140, ballx
-	jle		ai_end
+	jle	ai_end
 	cmpl	$2, xdir
 	jne		ai_end
 
@@ -75,24 +75,24 @@ loop:
 	movl	bally, %eax
 	subl	$3, %eax
 	cmpl	%eax, p2y
-	jg		ai_move_down
-	jmp		ai_move_up
+	jg	ai_move_down
+	jmp	ai_move_up
 	ai_end:		
 
 	# If the AI should not respond to ball movement
 	# move the AI back to the center
 	cmpl	$9, p2y
-	je		ai_end2
+	je	ai_end2
 	cmpl	$9, p2y
-	jg		ai_move_down
+	jg	ai_move_down
 
 	# AI movement
 	ai_move_up:
 	incl	p2y
-	jmp		ai_end2
+	jmp	ai_end2
 	ai_move_down:
 	decl	p2y
-	jmp		ai_end2
+	jmp	ai_end2
 	ai_end2:
 
 	loop_end:
@@ -106,7 +106,7 @@ loop:
 	movl	time, %ebx
 	addl	%ebx, delay_time
 	movl	$0, time
-	jmp		loop
+	jmp	loop
 
 reset_score:
 	movb	$'0', vga_memory + 72
@@ -122,11 +122,11 @@ check_win:
 	movl 	$vga_memory, %eax
 	addl	$72, %eax
 	cmpb	$'9', (%eax)
-	je 		player1_win
+	je 	player1_win
 	movl 	$vga_memory, %eax
 	addl	$84, %eax
 	cmpb	$'9', (%eax)
-	je		player2_win
+	je	player2_win
 
 	ret
 
@@ -145,7 +145,7 @@ player2_win:
 	movb	$'s', (%eax)
 	addl	$2, %eax
 	movb	$'t', (%eax)
-	jmp		game_over
+	jmp	game_over
 
 # Display game over screen until SPACE is pressed
 game_over:
@@ -170,12 +170,12 @@ check_player1_collision:
 	movl	p1y, %ebx
 
 	cmpl	p1y, %eax
-	jl		player2_score
+	jl	player2_score
 	addl	$7, %ebx
 	cmpl	%ebx, %eax
-	jg		player2_score
+	jg	player2_score
 
-	jmp		collsion_check_end
+	jmp	collsion_check_end
 
 # Check if the AI blocked the ball with his paddle
 check_player2_collision:
@@ -183,16 +183,16 @@ check_player2_collision:
 	movl	p2y, %ebx
 
 	cmpl	p2y, %eax
-	jl		player1_score
+	jl	player1_score
 	addl	$7, %ebx
 	cmpl	%ebx, %eax
-	jg		player1_score
+	jg	player1_score
 
-	jmp		collsion_check_end
+	jmp	collsion_check_end
 
 collsion_check_end:
 	call 	invert_ballx
-	jmp		ballx_invert_end
+	jmp	ballx_invert_end
 
 # Increment the player's score
 # and reset the board
@@ -201,7 +201,7 @@ player1_score:
 	addl	$72, %eax
 	incl	(%eax)
 	call	reset
-	jmp		collsion_check_end
+	jmp	collsion_check_end
 
 # Increment the AI's score
 # and reset the board
@@ -210,7 +210,7 @@ player2_score:
 	addl	$84, %eax
 	incl	(%eax)
 	call	reset
-	jmp		collsion_check_end
+	jmp	collsion_check_end
 
 # Reset the board and prepare for
 # the next round
@@ -230,7 +230,7 @@ invert_ballx:
 # Bounce the ball off the roof and floor
 invert_bally:
 	negl	ydir
-	jmp		bally_invert_end
+	jmp	bally_invert_end
 
 # Repeat for a duration 'main_delay' as a delay
 # mainly to avoid flickering in the display, which happens
@@ -240,7 +240,7 @@ delay:
 	movl	main_delay, %ebx
 	delay_loop:
 		cmpl	%ebx, time
-		jl		delay_loop
+		jl	delay_loop
 	ret
 
 # Clear the vga memory (except the top bar)
@@ -276,7 +276,7 @@ read_inputs:
 	cmpb    $3, curr_key				# If the current key is the ESC key,
 	je      paused						# pause the game
 
-	jmp		read_input_done                     
+	jmp	read_input_done                     
 	ret
 
 # Pause the game
@@ -287,7 +287,7 @@ paused:
 	# Repeat until ESC is pressed again
 	paused_loop:
 		cmpb	$3, curr_key
-		jne		paused_loop
+		jne	paused_loop
 	jmp		read_input_done
 
 # Move the paddle down, but make sure it's not out of bounds
@@ -452,14 +452,14 @@ set_game_over_text:
 	ret
 
 .data
-	time: 			.long  0
-	delay_time:		.long  0
-	p1y:			.long  9
-	p2y:			.long  9
-	ballx:			.long  80
-	bally:			.long  9
-	xdir:			.long -2
-	ydir:			.long  1
-	prev_dir: 		.long  0
+	time: 		.long  0
+	delay_time:	.long  0
+	p1y:		.long  9
+	p2y:		.long  9
+	ballx:		.long  80
+	bally:		.long  9
+	xdir:		.long -2
+	ydir:		.long  1
+	prev_dir: 	.long  0
 	round_delay:	.long  2000
-	main_delay:		.long  50
+	main_delay:	.long  50

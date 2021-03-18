@@ -20,7 +20,7 @@ set_handlers:
 	addl	$8, %esp
 
 	# Register keyboard interrupt handler in bootlib
-	pushl   $irq1
+	pushl	$irq1
     pushl   $1
     call    set_irq_handler
     call    enable_irq
@@ -31,7 +31,7 @@ set_handlers:
 # On every timer interrupt, increment 'time'
 irq0:
 	incl	time
-	jmp		end_of_irq0
+	jmp	end_of_irq0
 
 irq1:
 	# Get scancode from keyboard (%al will have the ASCII value)
