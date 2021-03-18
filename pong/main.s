@@ -96,8 +96,13 @@ loop:
 	ai_end2:
 
 	loop_end:
+	# Clear the vga memory
 	call	clear
+	# Render the game onto vga memory
 	call	render
+
+	# Reset the 'time', but keep 'delay_time' going
+	# because 'delay_time' is larger than 'time'
 	movl	time, %ebx
 	addl	%ebx, delay_time
 	movl	$0, time
