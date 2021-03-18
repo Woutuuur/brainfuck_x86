@@ -23,14 +23,7 @@ main:
 	# Clear the screen
 	call	clear
 
-	# Reset score
-	movb	$'0', vga_memory + 72
-	movb	$' ', vga_memory + 74
-	movb	$' ', vga_memory + 76
-	movb	$'-', vga_memory + 78
-	movb	$' ', vga_memory + 80
-	movb	$' ', vga_memory + 82
-	movb	$'0', vga_memory + 84
+	call	reset_score
 	
 	call	render
 
@@ -59,6 +52,8 @@ loop:
 	cmpl	$156, ballx
 	jge		check_player2_collision
 	ballx_invert_end:
+
+	call	check_win
 
 	cmpl	$140, ballx
 	jle		ai_end
@@ -90,6 +85,63 @@ loop:
 	call	render
 	movl	time, %ebx
 	addl	%ebx, delay_time
+	movl	$0, time
+	jmp		loop
+
+reset_score:
+	movb	$'0', vga_memory + 72
+	movb	$' ', vga_memory + 74
+	movb	$' ', vga_memory + 76
+	movb	$'-', vga_memory + 78
+	movb	$' ', vga_memory + 80
+	movb	$' ', vga_memory + 82
+	movb	$'0', vga_memory + 84
+	ret
+
+check_win:
+	movl 	$vga_memory, %eax
+	addl	$72, %eax
+	cmpb	$'9', (%eax)
+	je 		player1_win
+	movl 	$vga_memory, %eax
+	addl	$84, %eax
+	cmpb	$'9', (%eax)
+	je		player2_win
+
+	jmp 	check_win_end
+
+player1_win:
+	call	set_game_over_text
+	jmp 	game_over
+
+player2_win:
+	call	set_game_over_text
+	movl	$vga_memory, %eax
+	addl	$1996, %eax
+	movb	$'l', (%eax)
+	addl	$2, %eax
+	movb	$'o', (%eax)
+	addl	$2, %eax
+	movb	$'s', (%eax)
+	addl	$2, %eax
+	movb	$'t', (%eax)
+	jmp		game_over
+
+check_win_end:
+	ret
+
+game_over:
+	game_over_loop:
+		cmpb	$4, curr_key
+		jne 	game_over_loop
+		jmp		restart
+
+restart:
+	call	clear
+	call	reset_score
+	call	reset
+	movl	$2000, round_delay
+	movl	$0, delay_time
 	movl	$0, time
 	jmp		loop
 
@@ -159,6 +211,7 @@ read_inputs:
 		jl		read_loop
 	ret
 
+# Clear the vga memory (except the top bar)
 clear:
 	pushl   %eax
 	pushl   %ecx
@@ -175,6 +228,7 @@ clear:
 	popl	%eax
 	ret
 
+# Read inputs for the player's paddle
 paddle_inputs:
 	pushl	%ebp                        # Prologue
 	movl	%esp, %ebp
@@ -184,47 +238,192 @@ paddle_inputs:
 	je      move_paddle_up              # move the paddle up
 	cmpb    $2, curr_key              # If current key is the DOWN key,
 	je      move_paddle_down            # move the paddle down
+	cmpb    $3, curr_key
+	je      paused
 
 	movl	%ebp, %esp					# Epilogue
 	popl	%ebp                        
 	ret
 
+paused:
+	popl	%eax
+	movl	$0, curr_key
+	call	set_paused_text
+	paused_loop:
+		cmpb	$3, curr_key
+		jne		paused_loop
+	jmp		paddle_input_done
+
 move_paddle_down:
 	popl 	%eax
 
 	cmpl    $18, (%eax)                 # If the position is >= 18,
-	jge     move_paddle_done            # Exit paddle input function
+	jge     paddle_input_done            # Exit paddle input function
 
 	incl    (%eax)
 
-	jmp     move_paddle_done
+	jmp     paddle_input_done
 
 move_paddle_up:
 	popl 	%eax
 
 	cmpl    $1, (%eax)                  # If the position is <= 1,
-	jle     move_paddle_done            # Exit paddle input function
+	jle     paddle_input_done            # Exit paddle input function
 
 	decl    (%eax)
 
-	jmp     move_paddle_done
+	jmp     paddle_input_done
 
-move_paddle_done:
+paddle_input_done:
 	movb    $0, curr_key                 # Set the pressed key back to none.
 
 	movl	%ebp, %esp
 	popl	%ebp
 	ret
 
+set_paused_text:
+	call	clear
+	movl	$vga_memory, %eax
+	addl	$1988, %eax
+	movb	$'G', (%eax)
+	addl	$2, %eax
+	movb	$'a', (%eax)
+	addl	$2, %eax
+	movb	$'m', (%eax)
+	addl	$2, %eax
+	movb	$'e', (%eax)
+	addl	$2, %eax
+	movb	$' ', (%eax)
+	addl	$2, %eax
+	movb	$'p', (%eax)
+	addl	$2, %eax
+	movb	$'a', (%eax)
+	addl	$2, %eax
+	movb	$'u', (%eax)
+	addl	$2, %eax
+	movb	$'s', (%eax)
+	addl	$2, %eax
+	movb	$'e', (%eax)
+	addl	$2, %eax
+	movb	$'d', (%eax)
+	addl	$130, %eax
+	movb	$'P', (%eax)
+	addl	$2, %eax
+	movb	$'r', (%eax)
+	addl	$2, %eax
+	movb	$'e', (%eax)
+	addl	$2, %eax
+	movb	$'s', (%eax)
+	addl	$2, %eax
+	movb	$'s', (%eax)
+	addl	$2, %eax
+	movb	$' ', (%eax)
+	addl	$2, %eax
+	movb	$'E', (%eax)
+	addl	$2, %eax
+	movb	$'S', (%eax)
+	addl	$2, %eax
+	movb	$'C', (%eax)
+	addl	$2, %eax
+	movb	$' ', (%eax)
+	addl	$2, %eax
+	movb	$'t', (%eax)
+	addl	$2, %eax
+	movb	$'o', (%eax)
+	addl	$2, %eax
+	movb	$' ', (%eax)
+	addl	$2, %eax
+	movb	$'c', (%eax)
+	addl	$2, %eax
+	movb	$'o', (%eax)
+	addl	$2, %eax
+	movb	$'n', (%eax)
+	addl	$2, %eax
+	movb	$'t', (%eax)
+	addl	$2, %eax
+	movb	$'i', (%eax)
+	addl	$2, %eax
+	movb	$'n', (%eax)
+	addl	$2, %eax
+	movb	$'u', (%eax)
+	addl	$2, %eax
+	movb	$'e', (%eax)
+	ret
+
+set_game_over_text:
+	call	clear
+	movl	$vga_memory, %eax
+	addl	$1988, %eax
+	movb	$'Y', (%eax)
+	addl	$2, %eax
+	movb	$'o', (%eax)
+	addl	$2, %eax
+	movb	$'u', (%eax)
+	addl	$2, %eax
+	movb	$' ', (%eax)
+	addl	$2, %eax
+	movb	$'w', (%eax)
+	addl	$2, %eax
+	movb	$'o', (%eax)
+	addl	$2, %eax
+	movb	$'n', (%eax)
+	addl	$2, %eax
+	movb	$'!', (%eax)
+	addl	$132, %eax
+	movb	$'P', (%eax)
+	addl	$2, %eax
+	movb	$'r', (%eax)
+	addl	$2, %eax
+	movb	$'e', (%eax)
+	addl	$2, %eax
+	movb	$'s', (%eax)
+	addl	$2, %eax
+	movb	$'s', (%eax)
+	addl	$2, %eax
+	movb	$' ', (%eax)
+	addl	$2, %eax
+	movb	$'S', (%eax)
+	addl	$2, %eax
+	movb	$'P', (%eax)
+	addl	$2, %eax
+	movb	$'A', (%eax)
+	addl	$2, %eax
+	movb	$'C', (%eax)
+	addl	$2, %eax
+	movb	$'E', (%eax)
+	addl	$2, %eax
+	movb	$' ', (%eax)
+	addl	$2, %eax
+	movb	$'t', (%eax)
+	addl	$2, %eax
+	movb	$'o', (%eax)
+	addl	$2, %eax
+	movb	$' ', (%eax)
+	addl	$2, %eax
+	movb	$'r', (%eax)
+	addl	$2, %eax
+	movb	$'e', (%eax)
+	addl	$2, %eax
+	movb	$'s', (%eax)
+	addl	$2, %eax
+	movb	$'t', (%eax)
+	addl	$2, %eax
+	movb	$'a', (%eax)
+	addl	$2, %eax
+	movb	$'r', (%eax)
+	addl	$2, %eax
+	movb	$'t', (%eax)
+	ret
+
 .data
-	time: 			.long 0
-	delay_time:		.long 0
-	p1y:			.long 9
-	p2y:			.long 9
-	ballx:			.long 80
-	bally:			.long 9
+	time: 			.long  0
+	delay_time:		.long  0
+	p1y:			.long  9
+	p2y:			.long  9
+	ballx:			.long  80
+	bally:			.long  9
 	xdir:			.long -2
-	ydir:			.long 1
-	prev_dir: 		.long 0
-	round_delay:	.long 2000
-	main_delay:		.long 50
+	ydir:			.long  1
+	prev_dir: 		.long  0
+	round_delay:	.long  2000
+	main_delay:		.long  50

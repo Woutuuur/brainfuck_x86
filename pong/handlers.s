@@ -1,4 +1,4 @@
-.global set_handlers, curr_key, curr_key2
+.global set_handlers, curr_key
 
 .text
 
@@ -8,7 +8,7 @@
 .equ    ESC,    1
 .equ    ENTER,  0x1c
 .equ    DOWN2,  0x1f
-.equ    UP2,  0x11
+.equ    UP2,  	0x11
 
 .data
     curr_key:   .zero  1
@@ -34,8 +34,9 @@ irq0:
 	jmp		end_of_irq0
 
 irq1:
-	movl    $0, %eax                # ah = 0 means: read a keystroke
-	inb     $0x60, %al              # Get scancode from keyboard
+	xor    	%eax, %eax
+	inb     $0x60, %al      # Get scancode from keyboard
+
 	case_up:
 		cmpb    $UP, %al                # | If the scancode does not equal the scancode for UP
 		jne     case_down               # | Jump to the next case.
@@ -46,7 +47,11 @@ irq1:
 		movb    $2, curr_key            # | Else, move 2 into curr_key variable.
 	case_esc:
 		cmpb    $ESC, %al               # | If the scancode does not equal the scancode for ESC
+		jne     case_space              	# | Jump to the next case.
+		movb    $3, curr_key            # | Else, move 3 into curr_key variable.
+	case_space:
+		cmpb    $SPACE, %al               # | If the scancode does not equal the scancode for ESC
 		jne     return              	# | Jump to the next case.
-		movb    $3, curr_key            # | Else, move 4 into curr_key variable.
+		movb    $4, curr_key            # | Else, move 3 into curr_key variable.
 	return:
 		jmp     end_of_irq1             # Exit.
