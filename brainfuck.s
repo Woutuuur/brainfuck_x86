@@ -5,8 +5,7 @@
 .bss
 FILEBUFF: 	.skip 500000
 JUMPTABLE:	.skip 128000
-MEMORY:		.skip 8192
-PRINTBUFF: 	.skip 256
+MEMORY:		.skip 30000
 
 .text
 # Initialize a null-terminated strings
