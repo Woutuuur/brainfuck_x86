@@ -1,4 +1,4 @@
-# brainfuck_86
+# Brainfuck x86-64
 Brainfuck interpreter written in Intel x86-64 assembly (AT&T syntax).
 
 It uses some basic optimizations:
