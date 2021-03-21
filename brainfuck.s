@@ -1,6 +1,11 @@
 # ***************************************************************************************
 # * Program name: brainfuck								*
 # * Description: Interpreter for the brainfuck language					*
+# * Optimizations:									*
+# * 1. Jumptable for jumping to closing brackets					*
+# * 2. Using the stack to jump to opening brackets					*
+# * 3. [-] will be interpreted as setting the current cell to 0, withtout the need for  *
+# *    any iterations									*
 # ***************************************************************************************
 .bss
 FILEBUFF: 	.skip 500000
@@ -89,6 +94,12 @@ brainfuck_loop:
 	cmpb	$'<', FILEBUFF(%r12)
 	je	dec_pointer
 
+	cmpb	$'[',  FILEBUFF(%r12)
+	je	open_bracket
+
+	cmpb	$']',  FILEBUFF(%r12)
+	je	closing_bracket
+
 	cmpb	$'+', FILEBUFF(%r12)
 	je	inc_val
 
@@ -100,12 +111,6 @@ brainfuck_loop:
 
 	cmpb	$',',  FILEBUFF(%r12)
 	je	input_char
-
-	cmpb	$'[',  FILEBUFF(%r12)
-	je	open_bracket
-
-	cmpb	$']',  FILEBUFF(%r12)
-	je	closing_bracket
 
 	# '\0' means end of file is reached, go to end
 	cmpb	$0, FILEBUFF(%r12)
@@ -156,9 +161,21 @@ input_char:
 open_bracket:
 	cmpb	$0, (%r13)
 	je	find_closing_bracket
+	
+	# Special case for [-], which should just make the cell 0
+	movq	%r12, %rax
+	incq	%rax
+	cmpb	$'-', FILEBUFF(%rax)
+	jne	check_zero_end
+	incq	%rax
+	cmpb	$']', FILEBUFF(%rax)
+	jne		check_zero_end
+	movb	$0, (%r13)
+	addq	$2, %r12
+	jmp	brainfuck_loop_end
+	check_zero_end:
 
 	pushq	%r12
-
 	jmp	brainfuck_loop_end
 
 find_closing_bracket:
